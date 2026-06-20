@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>정주행 중앙 로비 허브</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css"
+    />
+    <style>
+      :root {
+        --bg-main: #040509;
+        --bg-card: #0e111b;
+        --bg-card-hover: #151a29;
+        --text-pure: #ffffff;
+        --text-muted: #4b5563;
+        --accent: #ad45ff;
+        --accent-gradient: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+        --border-color: rgba(255, 255, 255, 0.04);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: "Pretendard", sans-serif;
+      }
+      body {
+        background-color: var(--bg-main);
+        color: var(--text-pure);
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 60px 20px;
+      }
+
+      .lobby_container {
+        width: 100%;
+        max-width: 900px;
+        display: flex;
+        flex-direction: column;
+      }
+      .lobby_header {
+        margin-bottom: 32px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 24px;
+        text-align: center;
+      }
+      .lobby_header h1 {
+        font-size: 2.5rem;
+        font-weight: 900;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 8px;
+      }
+      .lobby_header p {
+        color: #64748b;
+        font-size: 0.95rem;
+        font-weight: 500;
+      }
+
+      /* 검색바 패널 */
+      .search-box-wrapper {
+        margin-bottom: 24px;
+      }
+      .lobby-search {
+        width: 100%;
+        padding: 14px 20px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        color: #fff;
+        font-size: 0.9rem;
+        outline: none;
+        transition: all 0.2s;
+      }
+      .lobby-search:focus {
+        border-color: #8b5cf6;
+        box-shadow: 0 0 15px rgba(139, 92, 246, 0.15);
+      }
+
+      /* 웹툰 카드 그리드 레이아웃 */
+      .webtoon_grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 16px;
+      }
+      .webtoon_card {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 24px;
+        background-color: var(--bg-card);
+        border-radius: 14px;
+        text-decoration: none;
+        color: var(--text-pure);
+        border: 1px solid var(--border-color);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+      }
+      .webtoon_card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: var(--accent-gradient);
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+
+      .webtoon_card:hover {
+        background-color: var(--bg-card-hover);
+        transform: translateY(-4px);
+        border-color: rgba(139, 92, 246, 0.2);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+      }
+      .webtoon_card:hover::before {
+        opacity: 1;
+      }
+
+      .card_main_info h3 {
+        font-size: 1.2rem;
+        font-weight: 700;
+        line-height: 1.4;
+        margin-bottom: 25px;
+        word-break: keep-all;
+      }
+      .card_meta_zone {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 1px solid rgba(255, 255, 255, 0.02);
+        padding-top: 12px;
+      }
+      .badge_portal {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #fff;
+        background: rgba(255, 255, 255, 0.06);
+        padding: 4px 10px;
+        border-radius: 20px;
+        transition: all 0.2s;
+      }
+      .webtoon_card:hover .badge_portal {
+        background: #8b5cf6;
+      }
+
+      .progress_preview {
+        font-size: 0.75rem;
+        color: #64748b;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="lobby_container">
+      <div class="lobby_header">
+        <h1>정주행 오프라인 보관함</h1>
+        <p>수집된 나만의 웹툰 정주행 허브 리스트</p>
+      </div>
+
+      <div class="search-box-wrapper">
+        <input
+          type="text"
+          class="lobby-search"
+          id="lobbySearch"
+          oninput="filterLobby()"
+          placeholder="소장 중인 웹툰 검색..."
+        />
+      </div>
+
+      <div class="webtoon_grid" id="lobbyGrid">
+        {% for filename, title in webtoon_lst -%}
+        <a class="webtoon_card" href="./{{filename}}" data-title="{{title}}">
+          <div class="card_main_info">
+            <h3>{{title}}</h3>
+          </div>
+          <div class="card_meta_zone">
+            <span class="progress_preview" id="lobby-stats-{{loop.index}}"
+              >기록 확인 중..</span
+            >
+            <span class="badge_portal">ENTER &rarr;</span>
+          </div>
+        </a>
+        {% endfor -%}
+      </div>
+    </div>
+
+    <script>
+      // 실시간 검색 기능
+      function filterLobby() {
+        const query = document
+          .getElementById("lobbySearch")
+          .value.toLowerCase();
+        const cards = document.querySelectorAll(".webtoon_card");
+
+        cards.forEach((card) => {
+          const title = card.getAttribute("data-title").toLowerCase();
+          if (title.includes(query)) {
+            card.style.display = "flex";
+          } else {
+            card.style.display = "none";
+          }
+        });
+      }
+
+      // 로컬스토리지 연동하여 메인 로비에 각 웹툰별 진척도 스코어 가볍게 노출
+      window.onload = function () {
+        const readData =
+          JSON.parse(localStorage.getItem("webtoon_read_history")) || {};
+        const cards = document.querySelectorAll(".webtoon_card");
+
+        cards.forEach((card, idx) => {
+          const title = card.getAttribute("data-title");
+          const readList = readData[title] || [];
+          const count = readList.length;
+          const statsLabel = document.getElementById(
+            "lobby-stats-" + (idx + 1)
+          );
+
+          if (count > 0) {
+            statsLabel.innerText = "읽은 회차: " + count + "개";
+            statsLabel.style.color = "#ec4899";
+          } else {
+            statsLabel.innerText = "정주행 미시작";
+          }
+        });
+      };
+    </script>
+  </body>
+</html>

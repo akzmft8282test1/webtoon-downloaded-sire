@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{title}} - {{episode}}</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css"
+    />
+    <style>
+      :root {
+        --bg-main: #0a0b10;
+        --bg-surface: rgba(20, 22, 33, 0.75);
+        --bg-surface-solid: #141621;
+        --text-pure: #ffffff;
+        --text-muted: #94a3b8;
+        --accent: #45f3ff;
+        --border-light: rgba(255, 255, 255, 0.08);
+        --viewer-max-width: 680px;
+        --ambient-color: rgba(69, 243, 255, 0.15);
+        --tint-color: rgba(255, 170, 0, 0);
+        --watermark-opacity: 0.04;
+      }
+
+      /* [기능] 5대 마스터 멀티 테마 스킨 정의 */
+      body.theme-midnight {
+        --bg-main: #000000;
+        --bg-surface-solid: #111111;
+        --accent: #ffffff;
+      }
+      body.theme-purple {
+        --bg-main: #0f0616;
+        --bg-surface-solid: #1e0b2d;
+        --accent: #ff45f3;
+      }
+      body.theme-warm {
+        --bg-main: #1a1612;
+        --bg-surface-solid: #28221c;
+        --accent: #ffb045;
+      }
+      body.theme-green {
+        --bg-main: #06120e;
+        --bg-surface-solid: #0d241c;
+        --accent: #45ffb0;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: "Pretendard", sans-serif;
+      }
+
+      body {
+        background-color: var(--bg-main);
+        color: var(--text-pure);
+        overflow-x: hidden;
+        scroll-behavior: smooth;
+        padding-top: 60px;
+        position: relative;
+        transition: background 0.3s ease, color 0.3s ease;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 120vw;
+        height: 120vh;
+        background: radial-gradient(
+          circle,
+          var(--ambient-color) 0%,
+          rgba(10, 11, 16, 0) 70%
+        );
+        z-index: -1;
+        pointer-events: none;
+        transition: background 0.8s ease;
+      }
+
+      /* [기능] 시력 보호 틴팅 오버레이 필터 */
+      body::after {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: var(--tint-color);
+        z-index: 9999;
+        pointer-events: none;
+        transition: background-color 0.2s ease;
+      }
+
+      /* 상단 바 */
+      .quick-top-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 60px;
+        background: rgba(14, 16, 27, 0.85);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--border-light);
+        z-index: 998;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+      }
+      .top-home-link {
+        color: var(--text-pure);
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .top-home-link:hover {
+        color: var(--accent);
+      }
+
+      .top-right-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .settings-toggle-btn {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border-light);
+        color: #fff;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .settings-toggle-btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      /* [신규 기능] 슬라이드 오버레이 설정창 */
+      .settings-sidebar {
+        position: fixed;
+        top: 0;
+        right: -320px;
+        width: 300px;
+        height: 100vh;
+        background: var(--bg-surface-solid);
+        border-left: 1px solid var(--border-light);
+        z-index: 1005;
+        padding: 24px;
+        box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+        transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        overflow-y: auto;
+      }
+      .settings-sidebar.active {
+        right: 0;
+      }
+      .settings-title {
+        font-size: 1.1rem;
+        font-weight: 800;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border-light);
+        padding-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .settings-close {
+        cursor: pointer;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+
+      .setting-item-group {
+        margin-bottom: 20px;
+      }
+      .setting-label {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+        display: block;
+        text-transform: uppercase;
+      }
+
+      /* 테마 체인저 라디오 그리드 */
+      .theme-grid-picker {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+      }
+      .theme-pick-btn {
+        padding: 8px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border-light);
+        border-radius: 6px;
+        color: #fff;
+        font-size: 0.75rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-align: left;
+      }
+      .theme-pick-btn.active {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .setting-slider {
+        width: 100%;
+        margin-top: 6px;
+        accent-color: var(--accent);
+      }
+
+      /* 웹툰 뷰어 구조 */
+      .webtoon_viewer {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        padding-bottom: 140px;
+      }
+      .viewer_header {
+        text-align: center;
+        padding: 40px 20px;
+        width: 100%;
+      }
+      .viewer_header h1 {
+        font-size: 1.8rem;
+        font-weight: 800;
+        margin-bottom: 8px;
+      }
+      .viewer_header h2 {
+        font-size: 1rem;
+        font-weight: 500;
+        color: var(--accent);
+      }
+
+      .image_container {
+        width: 100%;
+        max-width: var(--viewer-max-width);
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 0 50px rgba(0, 0, 0, 0.6);
+        position: relative;
+      }
+      .image_container img {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+
+      /* 워터마크 구조 */
+      .watermark-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 10;
+        overflow: hidden;
+        opacity: var(--watermark-opacity);
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 150px;
+        padding: 50px 0;
+      }
+      .watermark-item {
+        color: #fff;
+        font-size: 14px;
+        font-weight: 700;
+        transform: rotate(-30deg);
+        white-space: nowrap;
+        user-select: none;
+      }
+
+      /* 리모컨 보드 */
+      #remote {
+        width: 220px;
+        position: fixed;
+        z-index: 999;
+        background: var(--bg-surface-solid);
+        border: 1px solid var(--border-light);
+        border-radius: 16px;
+        right: 24px;
+        top: 25%;
+        overflow: hidden;
+      }
+      #remoteheader {
+        padding: 14px;
+        cursor: move;
+        background: rgba(255, 255, 255, 0.02);
+        color: var(--text-muted);
+        font-weight: 700;
+        font-size: 0.8rem;
+        text-align: center;
+        border-bottom: 1px solid var(--border-light);
+      }
+      .remote_body {
+        padding: 16px;
+      }
+      .remote_nav {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .remote_link {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 12px;
+        text-decoration: none;
+        color: var(--text-pure);
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 8px;
+        font-size: 0.85rem;
+      }
+      .remote_link:hover {
+        color: var(--accent);
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .scroll-control-box {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-light);
+      }
+      .speed-dial-zone {
+        display: flex;
+        justify-content: space-between;
+        gap: 4px;
+        margin-top: 8px;
+      }
+      .speed-btn {
+        flex: 1;
+        padding: 6px 0;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--border-light);
+        color: #fff;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        cursor: pointer;
+      }
+      .speed-btn.active {
+        background: var(--accent);
+        color: #000;
+        font-weight: 700;
+      }
+
+      .bookmark-zone {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-light);
+      }
+      .bookmark-btn {
+        width: 100%;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border-light);
+        color: #fff;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .bookmark-btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      /* 이어보기 스마트 토스트 팝업 */
+      .resume-popup {
+        position: fixed;
+        bottom: 100px;
+        right: -400px;
+        width: 320px;
+        background: var(--bg-surface-solid);
+        border: 2px solid var(--accent);
+        border-radius: 12px;
+        padding: 16px;
+        z-index: 1002;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        transition: right 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+      .resume-popup.active {
+        right: 24px;
+      }
+      .resume-text {
+        font-size: 0.85rem;
+        margin-bottom: 12px;
+        font-weight: 500;
+        line-height: 1.4;
+      }
+      .resume-btn-zone {
+        display: flex;
+        gap: 8px;
+      }
+      .resume-confirm {
+        flex: 1;
+        padding: 8px;
+        background: var(--accent);
+        color: #000;
+        font-weight: 700;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.8rem;
+      }
+      .resume-cancel {
+        padding: 8px 12px;
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.8rem;
+      }
+
+      .device-badge {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        color: var(--text-muted);
+      }
+
+      /* 하단 페이징 */
+      .pagination_board {
+        width: 100%;
+        max-width: 680px;
+        margin: 40px auto;
+        padding: 20px;
+        background: var(--bg-surface-solid);
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        text-align: center;
+      }
+      .pagination_list {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px;
+        list-style: none;
+        margin-top: 12px;
+      }
+      .page_item_link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 36px;
+        height: 36px;
+        padding: 0 4px;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.02);
+        color: var(--text-pure);
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+      .page_item_link.current_active {
+        background: var(--accent);
+        color: #000;
+        pointer-events: none;
+      }
+
+      @media (max-width: 768px) {
+        #remote {
+          display: none;
+        }
+        .resume-popup.active {
+          left: 50%;
+          transform: translateX(-50%);
+          right: auto;
+          width: 90%;
+          bottom: 40px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 상단 퀵 네비게이션 바 -->
+    <div class="quick-top-bar">
+      <a href="../../{{title}}.html" class="top-home-link">INDEX LIST</a>
+      <div class="top-right-actions">
+        <div class="device-badge" id="deviceDisplay">PC MODE</div>
+        <button class="settings-toggle-btn" onclick="toggleSettings(true)">
+          SETTINGS
+        </button>
+      </div>
+    </div>
+
+    <!-- [신규 기능] 독립 사이드 설정창 모듈 -->
+    <div class="settings-sidebar" id="settingsSidebar">
+      <div class="settings-title">
+        <span>뷰어 커스텀 설정</span>
+        <span class="settings-close" onclick="toggleSettings(false)">[X]</span>
+      </div>
+
+      <!-- 설정 항목 1: 멀티 테마 스킨 가동기 -->
+      <div class="setting-item-group">
+        <span class="setting-label">뷰어 테마 스킨</span>
+        <div class="theme-grid-picker">
+          <button
+            class="theme-pick-btn"
+            id="vt-neon"
+            onclick="changeViewerTheme('neon')"
+          >
+            네온 다크
+          </button>
+          <button
+            class="theme-pick-btn"
+            id="vt-midnight"
+            onclick="changeViewerTheme('midnight')"
+          >
+            미드나잇
+          </button>
+          <button
+            class="theme-pick-btn"
+            id="vt-purple"
+            onclick="changeViewerTheme('purple')"
+          >
+            사이버 퍼플
+          </button>
+          <button
+            class="theme-pick-btn"
+            id="vt-warm"
+            onclick="changeViewerTheme('warm')"
+          >
+            아늑한 웜톤
+          </button>
+          <button
+            class="theme-pick-btn"
+            id="vt-green"
+            onclick="changeViewerTheme('green')"
+          >
+            시력보호 그린
+          </button>
+        </div>
+      </div>
+
+      <!-- 설정 항목 2: 시력보호 필터 스위칭 슬라이더 -->
+      <div class="setting-item-group">
+        <span class="setting-label">블루라이트 차단 필터</span>
+        <input
+          type="range"
+          class="setting-slider"
+          min="0"
+          max="60"
+          value="0"
+          id="tintSlider"
+          oninput="applyTintFilter(this.value)"
+        />
+      </div>
+
+      <!-- 설정 항목 3: 불펌 방지 워터마크 제어 강도 -->
+      <div class="setting-item-group">
+        <span class="setting-label">워터마크 투명도 제어</span>
+        <input
+          type="range"
+          class="setting-slider"
+          min="0"
+          max="20"
+          value="4"
+          id="wmSlider"
+          oninput="applyWatermarkOpacity(this.value)"
+        />
+      </div>
+    </div>
+
+    <!-- 이어보기 팝업 모듈 -->
+    <div class="resume-popup" id="resumePopup">
+      <div class="resume-text">
+        이전에 읽던 기록이 있습니다.<br /><strong id="resumePercent">0%</strong>
+        위치부터 이어서 보시겠습니까?
+      </div>
+      <div class="resume-btn-zone">
+        <button class="resume-confirm" onclick="confirmResume()">
+          이어서 보기
+        </button>
+        <button class="resume-cancel" onclick="closeResume()">처음부터</button>
+      </div>
+    </div>
+
+    <!-- 고정 제어 리모컨 (PC형) -->
+    <div id="remote">
+      <div id="remoteheader">CONTROL PANE</div>
+      <div class="remote_body">
+        <div class="remote_nav">
+          <a class="remote_link" href="../../{{title}}.html"
+            ><span>홈 목록으로</span></a
+          >
+          <a class="remote_link" href="{{prev}}"><span>이전화</span></a>
+          <a class="remote_link" href="{{next}}"><span>다음화</span></a>
+        </div>
+
+        <div class="scroll-control-box">
+          <button
+            class="speed-btn"
+            style="width: 100%; margin-bottom: 6px"
+            id="scrollSwitch"
+            onclick="toggleAutoScroll()"
+          >
+            AUTO SCROLL OFF
+          </button>
+          <div class="speed-dial-zone">
+            <button
+              class="speed-btn speed-setting"
+              data-speed="0.5"
+              onclick="setScrollSpeed(0.5)"
+            >
+              0.5x
+            </button>
+            <button
+              class="speed-btn speed-setting active"
+              data-speed="1.0"
+              onclick="setScrollSpeed(1.0)"
+            >
+              1.0x
+            </button>
+            <button
+              class="speed-btn speed-setting"
+              data-speed="1.5"
+              onclick="setScrollSpeed(1.5)"
+            >
+              1.5x
+            </button>
+            <button
+              class="speed-btn speed-setting"
+              data-speed="2.0"
+              onclick="setScrollSpeed(2.0)"
+            >
+              2.0x
+            </button>
+          </div>
+        </div>
+
+        <div class="bookmark-zone">
+          <button class="bookmark-btn" onclick="saveBookmark()">
+            현재 위치 책갈피 저장
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 메인 뷰어 스페이스 -->
+    <div class="webtoon_viewer">
+      <div class="viewer_header">
+        <h1>{{title}}</h1>
+        <h2>{{episode}}</h2>
+      </div>
+
+      <div class="image_container" id="imgContainer">
+        <div class="watermark-overlay" id="watermarkBox"></div>
+
+        {% for item in img_lst -%}
+        <img src="{{item}}" alt="Webtoon Image" loading="lazy" />
+        {% endfor -%}
+      </div>
+
+      <!-- 동적 에피소드 페이징 보드 -->
+      <div class="pagination_board">
+        <ul class="pagination_list">
+          {% for page in pages -%}
+          <li>
+            <a
+              class="page_item_link {% if page.is_current %}current_active{% endif %}"
+              href="{{page.link}}"
+              >{{page.num}}</a
+            >
+          </li>
+          {% endfor -%}
+        </ul>
+      </div>
+    </div>
+
+    <script>
+      const currentWebtoon = "{{title}}";
+      const currentEpisode = "{{episode}}";
+
+      let deviceType = "PC";
+      let scrollSpeed = 1.0;
+      let scrollInterval = null;
+      let targetScrollY = 0;
+
+      // 설정창 오픈/클로즈 트리거
+      function toggleSettings(open) {
+        document
+          .getElementById("settingsSidebar")
+          .classList.toggle("active", open);
+      }
+
+      // 테마 변경 엔진 연동 가동
+      function changeViewerTheme(theme) {
+        document.body.className = "";
+        if (theme !== "neon") document.body.classList.add("theme-" + theme);
+        document
+          .querySelectorAll(".theme-pick-btn")
+          .forEach((b) => b.classList.remove("active"));
+        document.getElementById("vt-" + theme).classList.add("active");
+        localStorage.setItem("webtoon_vtheme", theme);
+      }
+
+      // 틴트 조절
+      function applyTintFilter(val) {
+        document.documentElement.style.setProperty(
+          "--tint-color",
+          `rgba(255, 170, 0, ${val / 100})`
+        );
+        localStorage.setItem("webtoon_vtint", val);
+      }
+
+      // 워터마크 투명도 조절
+      function applyWatermarkOpacity(val) {
+        document.documentElement.style.setProperty(
+          "--watermark-opacity",
+          val / 100
+        );
+        localStorage.setItem("webtoon_vwm", val);
+      }
+
+      function detectDevice() {
+        const ua = navigator.userAgent.toLowerCase();
+        const display = document.getElementById("deviceDisplay");
+        if (/mobile|iphone|ipad|ipod|android/.test(ua)) {
+          if (
+            /ipad/.test(ua) ||
+            (navigator.maxTouchPoints &&
+              navigator.maxTouchPoints > 2 &&
+              !/iphone/.test(ua))
+          ) {
+            deviceType = "PAD";
+            display.innerText = "TABLET MODE";
+            scrollSpeed = 0.8;
+          } else {
+            deviceType = "PHONE";
+            display.innerText = "MOBILE MODE";
+            scrollSpeed = 0.6;
+          }
+        } else {
+          deviceType = "PC";
+          display.innerText = "PC MODE";
+        }
+      }
+
+      function applyAmbientLight() {
+        const colors = [
+          "rgba(69, 243, 255, 0.12)",
+          "rgba(173, 69, 255, 0.12)",
+          "rgba(255, 100, 100, 0.1)",
+          "rgba(100, 255, 150, 0.1)",
+        ];
+        let hash = 0;
+        for (let i = 0; i < currentEpisode.length; i++) {
+          hash = currentEpisode.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const selectedColor = colors[Math.abs(hash) % colors.length];
+        document.documentElement.style.setProperty(
+          "--ambient-color",
+          selectedColor
+        );
+      }
+
+      function generateWatermarks() {
+        const box = document.getElementById("watermarkBox");
+        const domain = window.location.hostname || "WebtoonViewer";
+        for (let i = 0; i < 45; i++) {
+          const item = document.createElement("div");
+          item.className = "watermark-item";
+          item.innerText = domain;
+          box.appendChild(item);
+        }
+      }
+
+      function initReadAndResume() {
+        let readData =
+          JSON.parse(localStorage.getItem("webtoon_read_history")) || {};
+        if (!readData[currentWebtoon]) {
+          readData[currentWebtoon] = [];
+        }
+        if (!readData[currentWebtoon].includes(currentEpisode)) {
+          readData[currentWebtoon].push(currentEpisode);
+        }
+        localStorage.setItem("webtoon_read_history", JSON.stringify(readData));
+
+        let positionData =
+          JSON.parse(localStorage.getItem("webtoon_position_history")) || {};
+        const key = currentWebtoon + "_" + currentEpisode;
+
+        if (positionData[key] && positionData[key] > 100) {
+          targetScrollY = positionData[key];
+          const totalHeight =
+            document.documentElement.scrollHeight - window.innerHeight;
+          const percent = Math.round((targetScrollY / totalHeight) * 100);
+          document.getElementById("resumePercent").innerText = percent + "%";
+
+          setTimeout(
+            () => {
+              document.getElementById("resumePopup").classList.add("active");
+            },
+            deviceType === "PC" ? 600 : 1200
+          );
+        }
+      }
+
+      function confirmResume() {
+        window.scrollTo({ top: targetScrollY, behavior: "smooth" });
+        closeResume();
+      }
+      function closeResume() {
+        document.getElementById("resumePopup").classList.remove("active");
+      }
+
+      window.addEventListener("scroll", () => {
+        if (window.scrollY < 10) return;
+        let positionData =
+          JSON.parse(localStorage.getItem("webtoon_position_history")) || {};
+        const key = currentWebtoon + "_" + currentEpisode;
+        positionData[key] = window.scrollY;
+        localStorage.setItem(
+          "webtoon_position_history",
+          JSON.stringify(positionData)
+        );
+      });
+
+      function toggleAutoScroll() {
+        const btn = document.getElementById("scrollSwitch");
+        if (scrollInterval) {
+          clearInterval(scrollInterval);
+          scrollInterval = null;
+          btn.innerText = "AUTO SCROLL OFF";
+          btn.style.background = "";
+        } else {
+          btn.innerText = "AUTO SCROLL ON";
+          btn.style.background = "rgba(69, 243, 255, 0.2)";
+          const intervalRate = deviceType === "PC" ? 20 : 30;
+          scrollInterval = setInterval(() => {
+            window.scrollBy(0, scrollSpeed);
+          }, intervalRate);
+        }
+      }
+
+      function setScrollSpeed(speed) {
+        scrollSpeed =
+          speed *
+          (deviceType === "PHONE" ? 0.6 : deviceType === "PAD" ? 0.8 : 1.0);
+        document
+          .querySelectorAll(".speed-setting")
+          .forEach((b) => b.classList.remove("active"));
+        event.target.classList.add("active");
+      }
+
+      function saveBookmark() {
+        let bookmarkData =
+          JSON.parse(localStorage.getItem("webtoon_bookmarks")) || {};
+        if (!bookmarkData[currentWebtoon]) {
+          bookmarkData[currentWebtoon] = [];
+        }
+        const currentY = window.scrollY;
+        const totalHeight =
+          document.documentElement.scrollHeight - window.innerHeight;
+        const percent = Math.round((currentY / totalHeight) * 100);
+
+        bookmarkData[currentWebtoon].push({
+          ep: currentEpisode,
+          y: currentY,
+          pct: percent,
+          time: new Date().toLocaleDateString(),
+        });
+        localStorage.setItem("webtoon_bookmarks", JSON.stringify(bookmarkData));
+        alert(
+          "현재 스크롤 위치(" + percent + "%)를 북마크 창고에 저장했습니다!"
+        );
+      }
+
+      set_drag_element(document.getElementById("remote"));
+      function set_drag_element(elm) {
+        var p1 = 0,
+          p2 = 0,
+          p3 = 0,
+          p4 = 0;
+        if (document.getElementById(elm.id + "header")) {
+          document.getElementById(elm.id + "header").onmousedown = dragMD;
+        }
+        function dragMD(e) {
+          e = e || window.event;
+          if (e.target.tagName === "BUTTON") return;
+          e.preventDefault();
+          p3 = e.clientX;
+          p4 = e.clientY;
+          document.onmouseup = closeDrag;
+          document.onmousemove = elmDrag;
+        }
+        function elmDrag(e) {
+          e = e || window.event;
+          e.preventDefault();
+          p1 = p3 - e.clientX;
+          p2 = p4 - e.clientY;
+          p3 = e.clientX;
+          p4 = e.clientY;
+          elm.style.top = elm.offsetTop - p2 + "px";
+          elm.style.left = elm.offsetLeft - p1 + "px";
+        }
+        function closeDrag() {
+          document.onmouseup = null;
+          document.onmousemove = null;
+        }
+      }
+
+      window.onload = function () {
+        detectDevice();
+        applyAmbientLight();
+        generateWatermarks();
+        initReadAndResume();
+
+        // 저장된 설정 로드 처리
+        const savedTheme = localStorage.getItem("webtoon_vtheme") || "neon";
+        changeViewerTheme(savedTheme);
+        const savedTint = localStorage.getItem("webtoon_vtint") || 0;
+        document.getElementById("tintSlider").value = savedTint;
+        applyTintFilter(savedTint);
+        const savedWm = localStorage.getItem("webtoon_vwm") || 4;
+        document.getElementById("wmSlider").value = savedWm;
+        applyWatermarkOpacity(savedWm);
+      };
+    </script>
+  </body>
+</html>
